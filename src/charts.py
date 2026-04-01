@@ -1,269 +1,240 @@
-<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════════════════════════
-#  TASK 5 — CHARTS  (Plotly JSON generators)
-#  Returns Plotly figures as JSON strings for the browser.
+#  TASK 5 — CHARTS (UPGRADED)
+#  Interactive Plotly charts with modern dark theme
 #  Indian Stock Predictor · Alpha Five Team · Brainware University
 # ══════════════════════════════════════════════════════════════════════════════
-=======
-# TASK 5 — CHARTS
-# 4 interactive Plotly charts returned as JSON for the browser.
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-<<<<<<< HEAD
 from plotly.subplots import make_subplots
 
 
-# ── Shared dark theme ──────────────────────────────────────────────────────
+# ── Modern Dark Theme ──────────────────────────────────────────────────────
 
-_BG   = "rgba(0,0,0,0)"
-_GRID = "#1a2540"
-_LINE = "#243058"
+_BG = "rgba(0,0,0,0)"
+_GRID = "#1e2f4a"
+_LINE = "#2a3f5f"
 
-MODEL_COLORS = ["#38bdf8", "#fb923c", "#a78bfa"]
-MODEL_NAMES  = ["Ridge Regression", "Gradient Boosting", "Random Forest"]
+MODEL_COLORS = {
+    "Linear Regression": "#38bdf8",  # Cyan
+    "Ridge Regression": "#fb923c",    # Orange
+    "LSTM": "#a78bfa",                # Purple
+}
 
 
 def _base_layout(title: str, height: int) -> dict:
     return dict(
         title=dict(
             text=title,
-            font=dict(size=15, color="#cbd5e1", family="DM Sans, sans-serif"),
+            font=dict(size=16, color="#e8eef6", family="Space Grotesk, sans-serif", weight=700),
             x=0.01,
         ),
         height=height,
         paper_bgcolor=_BG,
         plot_bgcolor=_BG,
-        font=dict(color="#94a3b8", family="DM Sans, sans-serif", size=12),
+        font=dict(color="#94a3b8", family="Space Grotesk, sans-serif", size=12),
         hovermode="x unified",
         legend=dict(
-            bgcolor="rgba(13,20,35,0.85)",
-            bordercolor="#243058",
+            bgcolor="rgba(13,20,35,0.9)",
+            bordercolor="#2a3f5f",
             borderwidth=1,
             font=dict(size=11),
         ),
-        margin=dict(l=10, r=10, t=48, b=10),
+        margin=dict(l=15, r=15, t=55, b=15),
     )
 
 
 def _axis(title: str = ""):
     return dict(
-        title=dict(text=title, font=dict(size=11, color="#64748b")),
-        gridcolor=_GRID, linecolor=_LINE, zerolinecolor=_LINE,
+        title=dict(text=title, font=dict(size=12, color="#64748b")),
+        gridcolor=_GRID,
+        linecolor=_LINE,
+        zerolinecolor=_LINE,
         tickfont=dict(size=10),
     )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. Price + Indicators chart (3-row subplot)
+# 1. Price Chart with Technical Indicators
 # ══════════════════════════════════════════════════════════════════════════════
 
 def chart_price(df: pd.DataFrame, stock_name: str) -> str:
-    """Candlestick OHLC + SMA/EMA/Bollinger Bands | Volume | RSI."""
+    """Multi-panel chart: Price + SMA + Bollinger / Volume / RSI"""
     price_col = "adj_close" if "adj_close" in df.columns else "close"
     w = df.copy()
+
+    # Calculate RSI if missing
+    if "rsi" not in w.columns:
+        d = w[price_col].diff()
+        g = d.clip(lower=0).rolling(14, min_periods=5).mean()
+        l = (-d.clip(upper=0)).rolling(14, min_periods=5).mean()
+        w["rsi"] = (100 - 100 / (1 + g / l.replace(0, np.nan))).fillna(50)
 
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
-        row_heights=[0.58, 0.22, 0.20],
+        row_heights=[0.60, 0.20, 0.20],
         vertical_spacing=0.025,
-        subplot_titles=("Price · SMA 20/50 · EMA 20 · Bollinger Bands", "Volume", "RSI (14)"),
+        subplot_titles=("📈 Price + Moving Averages + Bollinger Bands", "📊 Volume", "📉 RSI (14)"),
     )
 
     dates = w["date"]
+    p = w[price_col]
 
-    # ── Row 1: Candlestick ────────────────────────────────────────────────
+    # Row 1: Candlestick or Line
     if all(c in w.columns for c in ["open", "high", "low", "close"]):
         fig.add_trace(go.Candlestick(
             x=dates, open=w["open"], high=w["high"], low=w["low"], close=w[price_col],
             name="OHLC",
             increasing_fillcolor="#22c55e", increasing_line_color="#22c55e",
             decreasing_fillcolor="#ef4444", decreasing_line_color="#ef4444",
-            line=dict(width=1),
+            line=dict(width=1.2),
         ), row=1, col=1)
     else:
         fig.add_trace(go.Scatter(
-            x=dates, y=w[price_col], name="Price",
-            line=dict(color="#38bdf8", width=2),
+            x=dates, y=p, name="Price",
+            line=dict(color="#38bdf8", width=2.5),
         ), row=1, col=1)
 
-    # Moving averages
-=======
-import plotly.express as px
-from plotly.subplots import make_subplots
-
-
-def _dark_layout(title: str, height: int) -> dict:
-    return dict(
-        title=dict(text=title, font=dict(size=16, color="#e2e8f0")),
-        height=height,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#94a3b8"),
-        hovermode="x unified",
-        legend=dict(bgcolor="rgba(15,23,42,0.7)", bordercolor="#334155", borderwidth=1),
-        xaxis=dict(gridcolor="#1e293b", linecolor="#334155"),
-        yaxis=dict(gridcolor="#1e293b", linecolor="#334155"),
-    )
-
-
-def chart_price(df: pd.DataFrame, stock_name: str) -> str:
-    """Price + SMA 20/50 + Bollinger Bands / Volume / RSI"""
-    price_col = "adj_close" if "adj_close" in df.columns else "close"
-    w = df.copy()
-
-    if "rsi" not in w.columns:
-        d = w[price_col].diff()
-        g = d.clip(lower=0).rolling(14, min_periods=5).mean()
-        l = (-d.clip(upper=0)).rolling(14, min_periods=5).mean()
-        w["rsi"] = (100 - 100 / (1 + g/l.replace(0, np.nan))).fillna(50)
-
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True,
-        row_heights=[0.6, 0.2, 0.2], vertical_spacing=0.02,
-        subplot_titles=("Price + Moving Averages + Bollinger Bands", "Volume", "RSI (14)"))
-
-    dates = w["date"]
-    p = w[price_col]
-
-    fig.add_trace(go.Scatter(x=dates, y=p, name="Price",
-        line=dict(color="#38bdf8", width=2)), row=1, col=1)
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
+    # Moving Averages
     if "sma_20" in w.columns:
-        fig.add_trace(go.Scatter(x=dates, y=w["sma_20"], name="SMA 20",
-            line=dict(color="#fb923c", width=1.5)), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=dates, y=w["sma_20"], name="SMA 20",
+            line=dict(color="#fb923c", width=1.8),
+        ), row=1, col=1)
     if "sma_50" in w.columns:
-        fig.add_trace(go.Scatter(x=dates, y=w["sma_50"], name="SMA 50",
-            line=dict(color="#a78bfa", width=1.5)), row=1, col=1)
-<<<<<<< HEAD
-    if "ema_20" in w.columns:
-        fig.add_trace(go.Scatter(x=dates, y=w["ema_20"], name="EMA 20",
-            line=dict(color="#f472b6", width=1.5, dash="dot")), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=dates, y=w["sma_50"], name="SMA 50",
+            line=dict(color="#a78bfa", width=1.8),
+        ), row=1, col=1)
 
     # Bollinger Bands
-=======
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
     if "bb_upper" in w.columns:
-        fig.add_trace(go.Scatter(x=dates, y=w["bb_upper"], name="BB Upper",
-            line=dict(color="#475569", dash="dot", width=1)), row=1, col=1)
-        fig.add_trace(go.Scatter(x=dates, y=w["bb_lower"], name="BB Lower",
-            line=dict(color="#475569", dash="dot", width=1),
-<<<<<<< HEAD
-            fill="tonexty", fillcolor="rgba(71,85,105,0.07)"), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=dates, y=w["bb_upper"], name="BB Upper",
+            line=dict(color="#475569", dash="dot", width=1.2),
+        ), row=1, col=1)
+        fig.add_trace(go.Scatter(
+            x=dates, y=w["bb_lower"], name="BB Lower",
+            line=dict(color="#475569", dash="dot", width=1.2),
+            fill="tonexty", fillcolor="rgba(71,85,105,0.08)",
+        ), row=1, col=1)
 
-    # ── Row 2: Volume ──────────────────────────────────────────────────────
+    # Row 2: Volume
     if "volume" in w.columns:
         is_up = w[price_col] >= w[price_col].shift(1)
-        colors = np.where(is_up, "rgba(34,197,94,0.4)", "rgba(239,68,68,0.4)")
-        fig.add_trace(go.Bar(x=dates, y=w["volume"], name="Volume",
-            marker_color=colors.tolist()), row=2, col=1)
+        colors = np.where(is_up, "rgba(34,197,94,0.5)", "rgba(239,68,68,0.5)")
+        fig.add_trace(go.Bar(
+            x=dates, y=w["volume"], name="Volume",
+            marker_color=colors.tolist(),
+        ), row=2, col=1)
 
-    # ── Row 3: RSI ────────────────────────────────────────────────────────
-    if "rsi" in w.columns:
-        fig.add_trace(go.Scatter(x=dates, y=w["rsi"], name="RSI",
-            line=dict(color="#f472b6", width=1.5)), row=3, col=1)
-        fig.add_hline(y=70, line_dash="dash", line_color="#ef4444", line_width=1, row=3, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="#22c55e", line_width=1, row=3, col=1)
-        fig.add_hrect(y0=70, y1=100, fillcolor="rgba(239,68,68,0.06)", row=3, col=1)
-        fig.add_hrect(y0=0,  y1=30,  fillcolor="rgba(34,197,94,0.06)",  row=3, col=1)
-        fig.update_yaxes(range=[0, 100], row=3, col=1)
+    # Row 3: RSI
+    fig.add_trace(go.Scatter(
+        x=dates, y=w["rsi"], name="RSI",
+        line=dict(color="#f472b6", width=2),
+    ), row=3, col=1)
+    
+    fig.add_hline(y=70, line_dash="dash", line_color="#ef4444", line_width=1.5, row=3, col=1)
+    fig.add_hline(y=30, line_dash="dash", line_color="#22c55e", line_width=1.5, row=3, col=1)
+    fig.add_hrect(y0=70, y1=100, fillcolor="rgba(239,68,68,0.08)", row=3, col=1, line_width=0)
+    fig.add_hrect(y0=0, y1=30, fillcolor="rgba(34,197,94,0.08)", row=3, col=1, line_width=0)
+    fig.update_yaxes(range=[0, 100], row=3, col=1)
 
-    layout = _base_layout(f"📈  {stock_name} — Technical Analysis", 860)
+    layout = _base_layout(f"🎯 {stock_name} — Technical Analysis Dashboard", 860)
     fig.update_layout(**layout, showlegend=True)
+    
     for r in range(1, 4):
         fig.update_xaxes(gridcolor=_GRID, linecolor=_LINE, row=r, col=1, showgrid=True)
         fig.update_yaxes(gridcolor=_GRID, linecolor=_LINE, row=r, col=1, showgrid=True)
+    
     fig.update_xaxes(rangeslider_visible=False, row=1, col=1)
 
     return fig.to_json()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 2. Model performance comparison
+# 2. Model Performance Comparison
 # ══════════════════════════════════════════════════════════════════════════════
 
 def chart_performance(perf_df: pd.DataFrame) -> str:
-    """4-panel bar chart: RMSE, MAE, R², CV-RMSE per model."""
-    models  = perf_df.index.tolist()
-    metrics = ["RMSE", "MAE", "R²", "CV-RMSE"]
-    cols    = [c for c in metrics if c in perf_df.columns]
+    """3-panel bar chart: RMSE, MAE, R² per model"""
+    models = perf_df.index.tolist()
+    colors = [MODEL_COLORS.get(m, "#64748b") for m in models]
 
-    n_cols = len(cols)
     fig = make_subplots(
-        rows=1, cols=n_cols,
-        horizontal_spacing=0.06,
-        subplot_titles=[
-            "RMSE ↓ Lower Better",
-            "MAE ↓ Lower Better",
-            "R² ↑ Higher Better",
-            "CV-RMSE ↓ Walk-Forward",
-        ][:n_cols],
+        rows=1, cols=3,
+        horizontal_spacing=0.08,
+        subplot_titles=("RMSE ↓ (Lower is Better)", "MAE ↓ (Lower is Better)", "R² ↑ (Higher is Better)"),
     )
 
-    palette = MODEL_COLORS + ["#22c55e", "#f59e0b"]
-    colors  = [palette[i % len(palette)] for i in range(len(models))]
+    for col, metric in enumerate(["RMSE", "MAE", "R²"], 1):
+        if metric in perf_df.columns:
+            vals = perf_df[metric]
+            fig.add_trace(go.Bar(
+                x=models, y=vals, name=metric,
+                marker=dict(color=colors, opacity=0.9, line=dict(width=0)),
+                text=[f"{v:.3f}" for v in vals],
+                textposition="outside",
+                textfont=dict(size=11, color="#e8eef6"),
+            ), row=1, col=col)
+            
+            fig.update_xaxes(tickangle=-25, gridcolor=_GRID, linecolor=_LINE, row=1, col=col)
+            fig.update_yaxes(gridcolor=_GRID, linecolor=_LINE, row=1, col=col)
 
-    for ci, metric in enumerate(cols, 1):
-        vals = perf_df[metric]
-        fig.add_trace(go.Bar(
-            x=models, y=vals,
-            name=metric,
-            marker=dict(color=colors, opacity=0.9, line=dict(width=0)),
-            text=[f"{v:.2f}" for v in vals],
-            textposition="outside",
-            textfont=dict(size=10),
-        ), row=1, col=ci)
-        fig.update_xaxes(tickangle=-25, gridcolor=_GRID, row=1, col=ci)
-        fig.update_yaxes(gridcolor=_GRID, row=1, col=ci)
-
-    layout = _base_layout("🤖  Model Performance Comparison", 420)
+    layout = _base_layout("🤖 Model Performance Comparison", 420)
     fig.update_layout(**layout, showlegend=False)
     return fig.to_json()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. Predictions vs Actual (test window)
+# 3. Predictions vs Actual (Test Window)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def chart_overlay(df: pd.DataFrame, test_preds: dict,
-                  test_start: int, name: str) -> str:
-    """Actual closing price vs each model's predictions on the test window."""
+def chart_overlay(df: pd.DataFrame, test_preds: dict, test_start: int, name: str) -> str:
+    """Actual price vs model predictions on test window"""
     price_col = "adj_close" if "adj_close" in df.columns else "close"
     fig = go.Figure()
 
-    # Actual price (full history)
+    # Actual price
     fig.add_trace(go.Scatter(
         x=df["date"], y=df[price_col],
         name="Actual Price",
-        line=dict(color="#e2e8f0", width=2),
+        line=dict(color="#e2e8f0", width=2.5),
     ))
 
-    # Model predictions (test window only)
-    for i, (mname, preds) in enumerate(test_preds.items()):
-        n     = len(preds)
+    # Model predictions
+    for mname, preds in test_preds.items():
+        # Filter None values
+        valid_preds = [p for p in preds if p is not None]
+        if not valid_preds:
+            continue
+            
+        n = len(valid_preds)
         dates = df["date"].iloc[test_start:test_start + n]
-        clr   = MODEL_COLORS[i % len(MODEL_COLORS)]
+        color = MODEL_COLORS.get(mname, "#64748b")
+        
         fig.add_trace(go.Scatter(
-            x=dates, y=preds,
+            x=dates, y=valid_preds,
             name=mname,
-            line=dict(color=clr, dash="dash", width=1.8),
+            line=dict(color=color, dash="dash", width=2),
         ))
 
-    # Shade the test window
+    # Shade test window
     if test_start < len(df):
         fig.add_vrect(
             x0=df["date"].iloc[test_start],
             x1=df["date"].iloc[-1],
-            fillcolor="rgba(56,189,248,0.04)",
-            layer="below", line_width=0,
+            fillcolor="rgba(56,189,248,0.05)",
+            layer="below",
+            line_width=0,
             annotation_text="Test Window",
             annotation_font_color="#38bdf8",
-            annotation_font_size=10,
+            annotation_font_size=11,
         )
 
-    layout = _base_layout(f"🎯  {name} — Predictions vs Actual (Test Window)", 500)
+    layout = _base_layout(f"🎯 {name} — Predictions vs Actual (Test Window)", 520)
     fig.update_layout(**layout)
     fig.update_xaxes(**_axis("Date"))
     fig.update_yaxes(**_axis("Price (₹)"))
@@ -271,49 +242,44 @@ def chart_overlay(df: pd.DataFrame, test_preds: dict,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. Target-date prediction with confidence bands
+# 4. Next-Day Prediction Chart
 # ══════════════════════════════════════════════════════════════════════════════
 
-def chart_target(target_pred: dict, current_price: float,
-                 res_std: dict, prediction_date: str,
-                 days_ahead: int) -> str:
-    """
-    Horizontal bar chart showing each model's prediction for the target date,
-    with confidence interval (±1σ) shown as error bars.
-    """
-    models  = list(target_pred.keys())
-    vals    = [target_pred[m] or 0 for m in models]
-    errors  = [res_std.get(m, 0) * (1 + 0.15 * (days_ahead - 1)) for m in models]
-    colors  = ["#22c55e" if v >= current_price else "#ef4444" for v in vals]
+def chart_next(next_pred: dict, current_price: float) -> str:
+    """Horizontal bar chart of next-day predictions"""
+    models = [m for m in next_pred.keys() if next_pred[m] is not None]
+    vals = [next_pred[m] for m in models]
+    colors = [MODEL_COLORS.get(m, "#64748b") for m in models]
+    bar_colors = ["#22c55e" if v > current_price else "#ef4444" for v in vals]
 
     fig = go.Figure()
+    
     fig.add_trace(go.Bar(
         y=models, x=vals,
         orientation="h",
-        marker=dict(color=colors, opacity=0.85, line=dict(width=0)),
-        error_x=dict(
-            type="data", array=errors,
-            color="rgba(255,255,255,0.3)", thickness=2, width=6,
-        ),
+        marker=dict(color=bar_colors, opacity=0.85, line=dict(width=0)),
         text=[f"₹{v:,.2f}" for v in vals],
         textposition="inside",
-        textfont=dict(size=13, color="white"),
+        textfont=dict(size=13, color="white", weight=600),
     ))
 
-    # Current price vertical line
+    # Current price line
     fig.add_vline(
         x=current_price,
-        line_dash="dash", line_color="#f59e0b", line_width=2,
+        line_dash="dash",
+        line_color="#f59e0b",
+        line_width=2.5,
         annotation=dict(
-            text=f"Current  ₹{current_price:,.2f}",
-            font=dict(color="#f59e0b", size=11),
-            showarrow=False, x=current_price, yref="paper", y=1.05,
+            text=f"Current ₹{current_price:,.2f}",
+            font=dict(color="#f59e0b", size=12, weight=600),
+            showarrow=False,
+            x=current_price,
+            yref="paper",
+            y=1.05,
         ),
     )
 
-    label = (f"Target {prediction_date} "
-             f"({'1 trading day' if days_ahead == 1 else f'{days_ahead} trading days'} ahead)")
-    layout = _base_layout(f"🔮  Prediction for {label}", 360)
+    layout = _base_layout("🔮 Next-Day Price Predictions", 350)
     fig.update_layout(**layout)
     fig.update_xaxes(**_axis("Predicted Price (₹)"))
     fig.update_yaxes(tickfont=dict(size=12))
@@ -321,112 +287,40 @@ def chart_target(target_pred: dict, current_price: float,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 5. Feature importance (top-10 per tree-based model)
+# 5. Feature Importance Chart
 # ══════════════════════════════════════════════════════════════════════════════
 
 def chart_feature_importance(feat_imp: dict) -> str:
-    """Horizontal bars showing top-10 feature importances for each tree model."""
+    """Top feature importances for each model"""
     models_with_imp = [m for m in feat_imp if feat_imp[m]]
     if not models_with_imp:
         return go.Figure().to_json()
 
     n = len(models_with_imp)
-    from plotly.subplots import make_subplots as _msp
-    fig = _msp(rows=1, cols=n, horizontal_spacing=0.08,
-               subplot_titles=[f"{m} — Top Features" for m in models_with_imp])
+    fig = make_subplots(
+        rows=1, cols=n,
+        horizontal_spacing=0.10,
+        subplot_titles=[f"{m} — Top Features" for m in models_with_imp],
+    )
 
     for ci, mname in enumerate(models_with_imp, 1):
         imp = feat_imp[mname]
-        feats = list(imp.keys())[::-1]
-        vals  = [imp[f] for f in feats]
-        clr   = MODEL_COLORS[(ci - 1) % len(MODEL_COLORS)]
+        feats = list(imp.keys())[::-1]  # Reverse for bottom-up display
+        vals = [imp[f] for f in feats]
+        color = MODEL_COLORS.get(mname, "#64748b")
+        
         fig.add_trace(go.Bar(
-            y=feats, x=vals, orientation="h",
-            marker=dict(color=clr, opacity=0.85, line=dict(width=0)),
-            text=[f"{v:.3f}" for v in vals], textposition="outside",
+            y=feats, x=vals,
+            orientation="h",
+            marker=dict(color=color, opacity=0.85, line=dict(width=0)),
+            text=[f"{v:.3f}" for v in vals],
+            textposition="outside",
             textfont=dict(size=9),
         ), row=1, col=ci)
-        fig.update_xaxes(gridcolor=_GRID, row=1, col=ci)
-        fig.update_yaxes(gridcolor=_GRID, row=1, col=ci, tickfont=dict(size=9))
+        
+        fig.update_xaxes(gridcolor=_GRID, linecolor=_LINE, row=1, col=ci)
+        fig.update_yaxes(gridcolor=_GRID, linecolor=_LINE, row=1, col=ci, tickfont=dict(size=9))
 
-    layout = _base_layout("⚙️  Feature Importance (Tree-Based Models)", max(340, 80 * 10))
+    layout = _base_layout("⚙️ Feature Importance Analysis", max(380, 60 * len(feats)))
     fig.update_layout(**layout, showlegend=False)
-=======
-            fill="tonexty", fillcolor="rgba(71,85,105,0.08)"), row=1, col=1)
-
-    if "volume" in w.columns:
-        fig.add_trace(go.Bar(x=dates, y=w["volume"], name="Volume",
-            marker_color="rgba(56,189,248,0.25)"), row=2, col=1)
-
-    fig.add_trace(go.Scatter(x=dates, y=w["rsi"], name="RSI",
-        line=dict(color="#f472b6", width=1.5)), row=3, col=1)
-    fig.add_hline(y=70, line_dash="dash", line_color="#ef4444", row=3, col=1)
-    fig.add_hline(y=30, line_dash="dash", line_color="#22c55e", row=3, col=1)
-    fig.update_yaxes(range=[0, 100], row=3, col=1)
-
-    fig.update_layout(**_dark_layout(f"{stock_name} — Price & Key Indicators", 820))
-    for i in range(1, 4):
-        fig.update_xaxes(gridcolor="#1e293b", linecolor="#334155", row=i, col=1)
-        fig.update_yaxes(gridcolor="#1e293b", linecolor="#334155", row=i, col=1)
-    return fig.to_json()
-
-
-def chart_performance(perf_df: pd.DataFrame) -> str:
-    """RMSE / MAE / R² bar chart per model"""
-    models = perf_df.index.tolist()
-    colors = ["#38bdf8", "#fb923c", "#a78bfa"]
-
-    fig = make_subplots(rows=1, cols=3, horizontal_spacing=0.08,
-        subplot_titles=("RMSE ↓ Lower Better", "MAE ↓ Lower Better", "R² ↑ Higher Better"))
-
-    for col, (metric, clr) in enumerate(zip(["RMSE","MAE","R²"], colors), 1):
-        vals = perf_df[metric]
-        fig.add_trace(go.Bar(x=models, y=vals, name=metric, marker_color=clr,
-            text=vals.round(2), textposition="auto",
-            marker=dict(line=dict(width=0))), row=1, col=col)
-
-    fig.update_layout(**_dark_layout("Model Performance Comparison", 380), showlegend=False)
-    for i in range(1, 4):
-        fig.update_xaxes(tickangle=-20, gridcolor="#1e293b", row=1, col=i)
-        fig.update_yaxes(gridcolor="#1e293b", row=1, col=i)
-    return fig.to_json()
-
-
-def chart_overlay(df: pd.DataFrame, test_preds: dict, test_start: int, name: str) -> str:
-    """Actual price vs model predictions on test window"""
-    price_col = "adj_close" if "adj_close" in df.columns else "close"
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df["date"], y=df[price_col], name="Actual",
-        line=dict(color="#e2e8f0", width=2)))
-
-    colors = ["#38bdf8", "#fb923c", "#a78bfa"]
-    for i, (mname, preds) in enumerate(test_preds.items()):
-        n = len(preds)
-        dates = df["date"].iloc[test_start:test_start+n]
-        fig.add_trace(go.Scatter(x=dates, y=preds, name=mname,
-            line=dict(color=colors[i % len(colors)], dash="dash", width=1.5)))
-
-    fig.update_layout(**_dark_layout(f"{name} — Predictions vs Actual (Test Window)", 480))
-    fig.update_xaxes(title="Date", gridcolor="#1e293b")
-    fig.update_yaxes(title="Price (₹)", gridcolor="#1e293b")
-    return fig.to_json()
-
-
-def chart_next(next_pred: dict, current_price: float) -> str:
-    """Next-day prediction per model vs current price"""
-    models = list(next_pred.keys())
-    vals   = [next_pred[m] or 0 for m in models]
-    colors = ["#22c55e" if v > current_price else "#ef4444" for v in vals]
-
-    fig = go.Figure(go.Bar(
-        y=models, x=vals, orientation="h",
-        marker=dict(color=colors, line=dict(width=0)),
-        text=[f"₹{v:,.2f}" for v in vals], textposition="auto",
-    ))
-    fig.add_vline(x=current_price, line_dash="dash", line_color="#f59e0b", line_width=2,
-        annotation_text=f"Current ₹{current_price:,.2f}", annotation_font_color="#f59e0b")
-    fig.update_layout(**_dark_layout("Next-Day Prediction by Model", 340))
-    fig.update_xaxes(title="Predicted Price (₹)", gridcolor="#1e293b")
-    fig.update_yaxes(gridcolor="#1e293b")
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
     return fig.to_json()

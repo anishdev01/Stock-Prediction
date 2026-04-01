@@ -1,69 +1,40 @@
-<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════════════════════════
-#  TASK 3 — MODEL TRAINER
-#  Three production-grade ML models with strong anti-overfit settings.
-#  Validated with TimeSeriesSplit cross-validation (walk-forward).
-#
-#  Model          Why it's here
-#  ─────────────  ────────────────────────────────────────────────────────────
-#  Ridge Reg.     L2-regularised linear baseline; fast & interpretable
-#  Gradient Boost Boosted shallow trees; best accuracy in most tabular tasks
-#  Random Forest  Bagged deep trees; robust & naturally estimates uncertainty
-#
+#  TASK 3 — MODEL TRAINER (UPGRADED)
+#  Three advanced ML models: Linear Regression, Ridge Regression, LSTM
 #  Indian Stock Predictor · Alpha Five Team · Brainware University
 # ══════════════════════════════════════════════════════════════════════════════
 
 import numpy as np
 import pandas as pd
 
-from sklearn.linear_model    import Ridge
-from sklearn.ensemble        import GradientBoostingRegressor, RandomForestRegressor
-from sklearn.preprocessing   import StandardScaler
-from sklearn.impute          import SimpleImputer
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics         import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+# TensorFlow/Keras for LSTM
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.callbacks import EarlyStopping
+    KERAS_AVAILABLE = True
+except ImportError:
+    KERAS_AVAILABLE = False
+    print("⚠️  TensorFlow not installed. LSTM will be skipped.")
 
 
-# ── Model definitions with carefully tuned anti-overfitting parameters ─────
+# ── Model definitions ───────────────────────────────────────────────────────
 
 def _make_models():
+    """Returns dictionary of sklearn model objects"""
     return {
-        # ── 1. Ridge Regression ──────────────────────────────────────────
-        #    alpha=50: strong L2 penalty shrinks noisy coefficients toward 0.
-        #    Prevents the linear model from fitting noise in financial data.
-        "Ridge Regression": Ridge(alpha=50.0, fit_intercept=True),
-
-        # ── 2. Gradient Boosting ─────────────────────────────────────────
-        #    Many small steps (learning_rate=0.03) with shallow trees (depth=3).
-        #    subsample=0.8 → stochastic boosting (like dropout for trees).
-        #    min_samples_leaf=15 → each leaf must cover at least 15 days.
-        "Gradient Boosting": GradientBoostingRegressor(
-            n_estimators=300,
-            learning_rate=0.03,
-            max_depth=3,
-            subsample=0.8,
-            min_samples_leaf=15,
-            max_features=0.7,
-            validation_fraction=0.1,   # early-stopping holdout
-            n_iter_no_change=25,       # stop if no improvement for 25 rounds
-            tol=1e-4,
-            random_state=42,
-        ),
-
-        # ── 3. Random Forest ─────────────────────────────────────────────
-        #    Ensemble of 300 diverse trees via bagging + feature randomness.
-        #    max_features='sqrt' ≈ each split sees √(n_features) features.
-        #    min_samples_leaf=10 → smooth, generalisable leaf nodes.
-        "Random Forest": RandomForestRegressor(
-            n_estimators=300,
-            max_depth=8,
-            min_samples_leaf=10,
-            max_features="sqrt",
-            bootstrap=True,
-            oob_score=True,      # out-of-bag estimate (free cross-validation)
-            n_jobs=-1,
-            random_state=42,
-        ),
+        # 1. Linear Regression (baseline)
+        "Linear Regression": LinearRegression(),
+        
+        # 2. Ridge Regression (L2 regularization to prevent overfitting)
+        "Ridge Regression": Ridge(alpha=10.0, fit_intercept=True),
     }
 
 
@@ -71,56 +42,12 @@ def _make_models():
 
 def preprocess(X_train_df: pd.DataFrame, X_test_df: pd.DataFrame):
     """
-    1. Impute missing values with the column median (fit on train only).
-    2. Standardise to zero-mean, unit-variance   (fit on train only).
-
-    Fitting ONLY on the training set prevents data leakage.
-=======
-# TASK 3 — MODEL TRAINER
-# 3 models only: Linear Regression, Decision Tree, Random Forest
-# Strong regularization settings to prevent overfitting on stock data.
-
-import numpy as np
-import pandas as pd
-from sklearn.linear_model  import LinearRegression
-from sklearn.tree          import DecisionTreeRegressor
-from sklearn.ensemble      import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute        import SimpleImputer
-from sklearn.metrics       import mean_squared_error, mean_absolute_error, r2_score
-
-
-# ── 3 models with ANTI-OVERFITTING settings ────────────────────────────────
-MODELS = {
-    "Linear Regression": LinearRegression(),
-
-    # max_depth=5 prevents memorising training data
-    "Decision Tree": DecisionTreeRegressor(
-        max_depth=5,
-        min_samples_leaf=10,   # each leaf needs at least 10 points
-        random_state=42
-    ),
-
-    # Many shallow trees — more robust than one deep tree
-    "Random Forest": RandomForestRegressor(
-        n_estimators=100,
-        max_depth=6,           # shallow trees = less overfitting
-        min_samples_leaf=8,
-        max_features=0.6,      # only see 60% of features per split
-        n_jobs=-1,
-        random_state=42
-    ),
-}
-
-
-def preprocess(X_train_df: pd.DataFrame, X_test_df: pd.DataFrame):
-    """
-    Fill missing values (median) → Scale to zero-mean unit-variance.
-    Fit ONLY on train data, apply to both.
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
+    1. Impute missing values with median
+    2. Standardize to zero-mean, unit-variance
+    Fit ONLY on train data to prevent leakage.
     """
     imputer = SimpleImputer(strategy="median")
-    scaler  = StandardScaler()
+    scaler = StandardScaler()
 
     X_tr = scaler.fit_transform(imputer.fit_transform(X_train_df))
     X_te = scaler.transform(imputer.transform(X_test_df))
@@ -128,72 +55,131 @@ def preprocess(X_train_df: pd.DataFrame, X_test_df: pd.DataFrame):
     return X_tr, X_te, imputer, scaler
 
 
-<<<<<<< HEAD
-# ── Walk-forward cross-validation ─────────────────────────────────────────
+# ── LSTM Model Builder ─────────────────────────────────────────────────────
 
-def _walk_forward_cv(model, X: np.ndarray, y: np.ndarray, n_splits: int = 5) -> float:
+def build_lstm_model(input_shape, units=50):
     """
-    TimeSeriesSplit cross-validation:
-      • Each fold always trains on the PAST and validates on the FUTURE.
-      • Mimics real-world model deployment (no look-ahead bias).
+    Builds a simple LSTM model for time series prediction
+    """
+    if not KERAS_AVAILABLE:
+        return None
+        
+    model = Sequential([
+        LSTM(units, activation='relu', return_sequences=True, input_shape=input_shape),
+        Dropout(0.2),
+        LSTM(units//2, activation='relu'),
+        Dropout(0.2),
+        Dense(25, activation='relu'),
+        Dense(1)
+    ])
+    
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model
 
-    Returns mean RMSE across all folds.
+
+def reshape_for_lstm(X, lookback=10):
     """
-    tscv   = TimeSeriesSplit(n_splits=n_splits)
-    errors = []
-    for train_idx, val_idx in tscv.split(X):
-        m = type(model)(**model.get_params())   # fresh copy each fold
-        m.fit(X[train_idx], y[train_idx])
-        preds = m.predict(X[val_idx])
-        errors.append(float(np.sqrt(mean_squared_error(y[val_idx], preds))))
-    return float(np.mean(errors))
+    Reshape 2D data (samples, features) to 3D (samples, timesteps, features)
+    Uses a sliding window approach
+    """
+    if len(X) < lookback:
+        lookback = max(1, len(X) // 2)
+    
+    samples = []
+    targets = []
+    
+    for i in range(lookback, len(X)):
+        samples.append(X[i-lookback:i])
+        targets.append(X[i, 0])  # Assuming first column is the target
+    
+    return np.array(samples), np.array(targets)
 
 
 # ── Main training function ─────────────────────────────────────────────────
 
 def train_all(X_train: np.ndarray, y_train: np.ndarray,
-              X_test:  np.ndarray, y_test:  np.ndarray,
+              X_test: np.ndarray, y_test: np.ndarray,
               feature_names: list = None):
     """
-    Trains all three models and returns rich diagnostics.
+    Trains all three models and returns diagnostics.
 
     Returns
     -------
-    performance   : DataFrame  — RMSE, MAE, R², CV-RMSE per model
-    models        : dict       — fitted model objects
-    test_preds    : dict       — predictions on the held-out test set
-    feat_imp      : dict       — feature importances (RF & GBR only)
+    performance : DataFrame  — RMSE, MAE, R² per model
+    models      : dict       — fitted model objects
+    test_preds  : dict       — predictions on test set
+    feat_imp    : dict       — feature importances (if available)
     """
-    models_def = _make_models()
+    sklearn_models = _make_models()
     rows, trained, test_preds, feat_imp = [], {}, {}, {}
 
-    for name, model in models_def.items():
-        # ── Train ─────────────────────────────────────────────────────
+    # Train sklearn models (Linear & Ridge)
+    for name, model in sklearn_models.items():
         model.fit(X_train, y_train)
-
-        # ── Test-set evaluation ───────────────────────────────────────
+        
         y_pred = model.predict(X_test)
-        rmse   = float(np.sqrt(mean_squared_error(y_test, y_pred)))
-        mae    = float(mean_absolute_error(y_test, y_pred))
-        r2     = float(r2_score(y_test, y_pred))
-
-        # ── Walk-forward CV (on training data) ────────────────────────
-        cv_rmse = _walk_forward_cv(model, X_train, y_train, n_splits=5)
+        rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+        mae = float(mean_absolute_error(y_test, y_pred))
+        r2 = float(r2_score(y_test, y_pred))
 
         rows.append({
-            "Model":   name,
-            "RMSE":    rmse,
-            "MAE":     mae,
-            "R²":      r2,
-            "CV-RMSE": cv_rmse,
+            "Model": name,
+            "RMSE": rmse,
+            "MAE": mae,
+            "R²": r2,
         })
-        trained[name]    = model
+        trained[name] = model
         test_preds[name] = y_pred.tolist()
+        
+        # Linear/Ridge have coefficients, not feature importance
+        if hasattr(model, 'coef_') and feature_names:
+            coef = pd.Series(np.abs(model.coef_), index=feature_names)
+            feat_imp[name] = coef.sort_values(ascending=False).head(10).to_dict()
 
-        # ── Feature importance ────────────────────────────────────────
-        if feature_names and hasattr(model, "feature_importances_"):
-            fi = pd.Series(model.feature_importances_, index=feature_names)
-            feat_imp[name] = fi.sort_values(ascending=False).head(10).to_dict()
+    # Train LSTM model
+    if KERAS_AVAILABLE and len(X_train) > 20:
+        try:
+            lookback = min(10, len(X_train) // 5)
+            
+            # Reshape data for LSTM
+            X_train_lstm, y_train_lstm = reshape_for_lstm(X_train, lookback)
+            X_test_lstm, y_test_lstm = reshape_for_lstm(X_test, lookback)
+            
+            if len(X_train_lstm) > 10:
+                lstm_model = build_lstm_model(
+                    input_shape=(X_train_lstm.shape[1], X_train_lstm.shape[2])
+                )
+                
+                early_stop = EarlyStopping(monitor='val_loss', patience=5, 
+                                          restore_best_weights=True)
+                
+                lstm_model.fit(
+                    X_train_lstm, y_train_lstm,
+                    epochs=50, batch_size=16,
+                    validation_split=0.1,
+                    callbacks=[early_stop],
+                    verbose=0
+                )
+                
+                y_pred_lstm = lstm_model.predict(X_test_lstm, verbose=0).flatten()
+                
+                rmse = float(np.sqrt(mean_squared_error(y_test_lstm, y_pred_lstm)))
+                mae = float(mean_absolute_error(y_test_lstm, y_pred_lstm))
+                r2 = float(r2_score(y_test_lstm, y_pred_lstm))
+
+                rows.append({
+                    "Model": "LSTM",
+                    "RMSE": rmse,
+                    "MAE": mae,
+                    "R²": r2,
+                })
+                trained["LSTM"] = lstm_model
+                # Align predictions with test set length
+                pred_aligned = [None] * (len(y_test) - len(y_pred_lstm)) + y_pred_lstm.tolist()
+                test_preds["LSTM"] = pred_aligned
+                
+        except Exception as e:
+            print(f"⚠️  LSTM training failed: {e}")
 
     perf = (pd.DataFrame(rows)
               .set_index("Model")
@@ -206,36 +192,17 @@ def train_all(X_train: np.ndarray, y_train: np.ndarray,
 
 def residual_std(test_preds: dict, y_test: np.ndarray) -> dict:
     """
-    Computes the standard deviation of residuals on the test set.
-    Used to build ±1 / ±2 σ confidence bands for future predictions.
+    Computes standard deviation of residuals on test set
     """
     result = {}
     for name, preds in test_preds.items():
-        residuals = np.array(preds) - y_test
-        result[name] = float(np.std(residuals))
+        # Filter out None values for LSTM alignment
+        valid_preds = [p for p in preds if p is not None]
+        valid_test = y_test[-len(valid_preds):]
+        
+        if len(valid_preds) > 0:
+            residuals = np.array(valid_preds) - valid_test
+            result[name] = float(np.std(residuals))
+        else:
+            result[name] = 0.0
     return result
-=======
-def train_all(X_train, y_train, X_test, y_test):
-    """
-    Trains all 3 models and returns:
-      performance     → DataFrame with RMSE, MAE, R²
-      trained_models  → dict of fitted models
-      test_preds      → dict of predictions on test set
-    """
-    rows, trained, test_preds = [], {}, {}
-
-    for name, model in MODELS.items():
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-
-        rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
-        mae  = float(mean_absolute_error(y_test, y_pred))
-        r2   = float(r2_score(y_test, y_pred))
-
-        rows.append({"Model": name, "RMSE": rmse, "MAE": mae, "R²": r2})
-        trained[name]     = model
-        test_preds[name]  = y_pred.tolist()
-
-    perf = (pd.DataFrame(rows).set_index("Model").sort_values("RMSE"))
-    return perf, trained, test_preds
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1

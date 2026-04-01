@@ -1,10 +1,7 @@
 flask==3.0.3
 numpy==1.26.4
 pandas==2.2.2
-<<<<<<< HEAD
 scikit-learn==1.5.1
-=======
-scikit-learn==1.4.2
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
 yfinance==0.2.65
 plotly==5.22.0
+tensorflow==2.15.0

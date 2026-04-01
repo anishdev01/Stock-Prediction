@@ -1,15 +1,10 @@
-<<<<<<< HEAD
 __pycache__
 *.pyc
 .env
 *.egg-info
-=======
 virtualenv/
 venv/
-__pycache__/
-*.pyc
 *.pyo
 .DS_Store
 logs/
 *.log
->>>>>>> 236a2c92b346f989d77d458d7e9deda2ee9cb5d1
